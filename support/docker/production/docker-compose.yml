@@ -3,42 +3,62 @@ version: "3.3"
 services:
 
   # You can comment this webserver section if you want to use another webserver/proxy or test PeerTube in local
-  webserver:
-    image: chocobozzz/peertube-webserver:latest
-    # If you don't want to use the official image and build one from sources:
-    # build:
-    #   context: .
-    #   dockerfile: Dockerfile.nginx
-    env_file:
-      - .env
-    ports:
-     - "80:80"
-     - "443:443"
-    volumes:
-      - type: bind
-        # Switch sources if you downloaded the whole repository
-        #source: ../../nginx/peertube
-        source: ./docker-volume/nginx/peertube
-        target: /etc/nginx/conf.d/peertube.template
-      - assets:/var/www/peertube/peertube-latest/client/dist:ro
-      - ./docker-volume/data:/var/www/peertube/storage
-      - certbot-www:/var/www/certbot
-      - ./docker-volume/certbot/conf:/etc/letsencrypt
-    depends_on:
-      - peertube
-    restart: "always"
+  # webserver:
+  #   image: chocobozzz/peertube-webserver:latest
+  #   # If you don't want to use the official image and build one from sources:
+  #   # build:
+  #   #   context: .
+  #   #   dockerfile: Dockerfile.nginx
+  #   env_file:
+  #     - .env
+  #   ports:
+  #    - "80:80"
+  #    - "443:443"
+  #   volumes:
+  #     - type: bind
+  #       # Switch sources if you downloaded the whole repository
+  #       #source: ../../nginx/peertube
+  #       source: ./docker-volume/nginx/peertube
+  #       target: /etc/nginx/conf.d/peertube.template
+  #     - assets:/var/www/peertube/peertube-latest/client/dist:ro
+  #     - ./docker-volume/data:/var/www/peertube/storage
+  #     - certbot-www:/var/www/certbot
+  #     - ./docker-volume/certbot/conf:/etc/letsencrypt
+  #   depends_on:
+  #     - peertube
+  #   restart: "always"
 
   # You can comment this certbot section if you want to use another webserver/proxy or test PeerTube in local
-  certbot:
-    container_name: certbot
-    image: certbot/certbot
+  # certbot:
+  #   container_name: certbot
+  #   image: certbot/certbot
+  #   volumes:
+  #     - ./docker-volume/certbot/conf:/etc/letsencrypt
+  #     - certbot-www:/var/www/certbot
+  #   restart: unless-stopped
+  #   entrypoint: /bin/sh -c "trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot; sleep 12h & wait $${!}; done;"
+  #   depends_on:
+  #     - webserver
+  traefik:
+    # The official v2 Traefik docker image
+    image: traefik:v2.11
+    # Enables the web UI and tells Traefik to listen to docker
+    command: --api.insecure=true --providers.docker
+    networks:
+      proxy:
+        aliases:
+          - "peertube.localhost"
+    ports:
+      # The HTTP port
+      - "80:80"
+      # The Web UI (enabled by --api.insecure=true)
+      - "8080:8080"
+    expose:
+      - "80"
+      - "8080"
     volumes:
-      - ./docker-volume/certbot/conf:/etc/letsencrypt
-      - certbot-www:/var/www/certbot
-    restart: unless-stopped
-    entrypoint: /bin/sh -c "trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot; sleep 12h & wait $${!}; done;"
-    depends_on:
-      - webserver
+      # So that Traefik can listen to the Docker events
+      - /var/run/docker.sock:/var/run/docker.sock
 
   peertube:
     # If you don't want to use the official image and build one from sources:
@@ -51,12 +71,15 @@ services:
     networks:
       default:
         ipv4_address: 172.18.0.42
+      proxy:
     env_file:
       - .env
-
+    labels:
+      - "traefik.docker.network=peertube_proxy"
+      - "traefik.http.routers.backend.rule=Host(`peertube.localhost`)"
     ports:
      - "1935:1935" # Comment if you don't want to use the live feature
-    #  - "9000:9000" # Uncomment if you use another webserver/proxy or test PeerTube in local, otherwise not suitable for production
+     - "9000:9000" # Uncomment if you use another webserver/proxy or test PeerTube in local, otherwise not suitable for production
     volumes:
       # Remove the following line if you want to use another webserver/proxy or test PeerTube in local
       - assets:/app/client/dist
@@ -75,12 +98,16 @@ services:
     volumes:
       - ./docker-volume/db:/var/lib/postgresql/data
     restart: "always"
+    networks:
+      - proxy
 
   redis:
     image: redis:6-alpine
     volumes:
       - ./docker-volume/redis:/data
     restart: "always"
+    networks:
+      - proxy
 
   postfix:
     image: mwader/postfix-relay
@@ -89,8 +116,12 @@ services:
     volumes:
       - ./docker-volume/opendkim/keys:/etc/opendkim/keys
     restart: "always"
+    networks:
+      - proxy
 
 networks:
+  proxy:
+    driver: bridge
   default:
     ipam:
       driver: default
