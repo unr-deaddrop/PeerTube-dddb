@@ -11,12 +11,12 @@ webserver:
 rates_limit:
   login:
     # 15 attempts in 5 min
-    window: 5 minutes
-    max: 15
+    window: 2 minutes
+    max: 999
   ask_send_email:
     # 3 attempts in 5 min
-    window: 5 minutes
-    max: 3
+    window: 2 minutes
+    max: 999
 
 # Proxies to trust to get real client IP
 # If you run PeerTube just behind a local proxy (nginx), keep 'loopback'
