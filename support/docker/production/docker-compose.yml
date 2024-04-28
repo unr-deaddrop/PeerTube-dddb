@@ -50,9 +50,9 @@ services:
           - "peertube.localhost"
     ports:
       # The HTTP port
-      - "80:80"
+      - "81:80"
       # The Web UI (enabled by --api.insecure=true)
-      - "8080:8080"
+      - "8081:8080"
     expose:
       - "80"
       - "8080"
@@ -70,13 +70,13 @@ services:
     # This container could be restarted on crash or until the postgresql database is ready for connection
     networks:
       default:
-        ipv4_address: 172.18.0.42
+        ipv4_address: 172.20.0.42
       proxy:
     env_file:
       - .env
     labels:
       - "traefik.docker.network=peertube_proxy"
-      - "traefik.http.routers.backend.rule=Host(`peertube.localhost`)"
+      - "traefik.http.routers.peertube.rule=Host(`peertube.localhost`)"
     ports:
      - "1935:1935" # Comment if you don't want to use the live feature
      - "9000:9000" # Uncomment if you use another webserver/proxy or test PeerTube in local, otherwise not suitable for production
@@ -126,7 +126,7 @@ networks:
     ipam:
       driver: default
       config:
-      - subnet: 172.18.0.0/16
+      - subnet: 172.20.0.0/16
 
 volumes:
   assets:
