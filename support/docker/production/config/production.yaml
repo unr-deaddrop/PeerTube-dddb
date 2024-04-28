@@ -9,13 +9,35 @@ webserver:
   port: 443
 
 rates_limit:
+  api:
+    window: 10 seconds
+    max: 999
   login:
-    # 15 attempts in 5 min
-    window: 2 minutes
+    window: 10 seconds
+    max: 999
+  signup:
+    window: 10 seconds
     max: 999
   ask_send_email:
-    # 3 attempts in 5 min
-    window: 2 minutes
+    window: 10 seconds
+    max: 999
+  receive_client_log:
+    window: 10 seconds
+    max: 999
+  plugins:
+    window: 10 seconds
+    max: 999
+  well_known:
+    window: 10 seconds
+    max: 999
+  feeds:
+    window: 10 seconds
+    max: 999
+  activity_pub:
+    window: 10 seconds
+    max: 999
+  client:
+    window: 10 seconds
     max: 999
 
 # Proxies to trust to get real client IP
